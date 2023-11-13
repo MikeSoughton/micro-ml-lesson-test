@@ -44,8 +44,8 @@ kind: "lesson"
 # Magic to make URLs resolve both locally and on GitHub.
 # See https://help.github.com/articles/repository-metadata-on-github-pages/.
 # Please don't change it: <USERNAME>/<PROJECT> is correct.
-#repository: <USERNAME>/<PROJECT>
-repository: MikeSoughton/micro-ml-lesson-test
+repository: <USERNAME>/<PROJECT>
+#repository: MikeSoughton/micro-ml-lesson-test
 
 # Email address, no mailto:
 email: "team@carpentries.org"
@@ -85,10 +85,10 @@ start_time: 0
 collections:
   episodes:
     output: true
-    permalink: /:path/_site/index.html
+    permalink: /:path/index.html
   extras:
     output: true
-    permalink: /:path_site/index.html
+    permalink: /:path/index.html
 
 # Set the default layout for things in the episodes collection.
 defaults:
