@@ -46,7 +46,7 @@ We saw in the last lesson on linear regression how we can train a model $$g(\bol
 
 A classic example of a classification task within Machine Learning is predicting handwritten digits from the [MNIST dataset](https://en.wikipedia.org/wiki/MNIST_database) containing 70000 images. Optical Character Recognition software is important to many industries - today close to 99 % of letters sent via post are sorted automatically! We will revist this task later with more powerful Deep Neural Networks and Convolutional Neural Networks but it is a good idea to first work with it in the scope of logistic regression. 
 
-MNIST IMAGE HERE
+<img src="{{ page.root }}/fig/MNIST_image_example.png" alt="drawing" width="500"/>
 
 We shall first use logistic regression for a *binary classification* task before then using its generalised version softmax regression for *multiclass classification*.
 
