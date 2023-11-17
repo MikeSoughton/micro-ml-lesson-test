@@ -10,7 +10,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta http-equiv="last-modified" content="2023-11-13 15:44:58 +0000">
+    <meta http-equiv="last-modified" content="2023-11-17 02:54:58 +0000">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- meta "search-domain" used for google site search function google_search() -->
     <meta name="search-domain" value="">
@@ -19,6 +19,9 @@
     <link rel="stylesheet" type="text/css" href="/assets/css/lesson.css" />
     <link rel="stylesheet" type="text/css" href="/assets/css/syntax.css" />
     
+    <script type="text/javascript" async
+        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+    </script>
     <link rel="license" href="#license-info" />
 
     
@@ -149,7 +152,16 @@
           <ul class="dropdown-menu">
             
             
-            <li><a href="/01-introduction/index.html">Introduction</a></li>
+            <li><a href="/01-logistic_regression/index.html">Logistic Regression</a></li>
+            
+            
+            <li><a href="/backup01-introduction/index.html">Introduction</a></li>
+            
+            
+            <li><a href="/backup02-ml_intro/index.html">ml-intro</a></li>
+            
+            
+            <li><a href="/backup03-logistic_regression/index.html">Logistic Regression</a></li>
             
 	    <li role="separator" class="divider"></li>
             <li><a href="/aio/index.html">All in one page (Beta)</a></li>
@@ -218,6 +230,275 @@
 
 <article>
 
+<h1 id="logistic-regression" class="maintitle">Logistic Regression</h1>
+
+<blockquote class="objectives">
+  <h2>Overview</h2>
+
+  <div class="row">
+    <div class="col-md-3">
+      <strong>Teaching:</strong> 15 min
+      <br />
+      <strong>Exercises:</strong> 45 min
+    </div>
+    <div class="col-md-9">
+      <strong>Questions</strong>
+      <ul>
+	
+      </ul>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-3">
+    </div>
+    <div class="col-md-9">
+      <strong>Objectives</strong>
+      <ul>
+	
+	<li><p>When to perform logistic regression</p>
+</li>
+	
+	<li><p>Setup training and testing data for logistic regression</p>
+</li>
+	
+	<li><p>Understand the binary cross-entropy loss</p>
+</li>
+	
+	<li><p>How to tune your model and implement regularisation</p>
+</li>
+	
+	<li><p>Understand the performance metrics that can be used to evaluate classification models</p>
+</li>
+	
+      </ul>
+    </div>
+  </div>
+
+</blockquote>
+
+<h2 id="key-concepts-and-lesson-objectives">Key concepts and lesson objectives</h2>
+<p>We have learnt the following concepts in the last lesson on linear regression which we shall use again here:</p>
+<ul>
+  <li>Train-test splitting</li>
+  <li>Gradient descent</li>
+  <li>The loss/cost function</li>
+  <li>Overfitting</li>
+  <li>The bias-variance tradeoff</li>
+</ul>
+
+<p>Continuing on from this we shall learn how logistic regression can be used for classification tasks in a similar vein to linear regression, but with a few important changes. By the end of this lesson you should know:</p>
+<ul>
+  <li>When to perform logistic regression</li>
+  <li>Setup training and testing data for logistic regression</li>
+  <li>Understand the binary cross-entropy loss</li>
+  <li>How to tune your model and implement regularisation</li>
+  <li>Understand the performance metrics that can be used to evaluate classification models</li>
+</ul>
+
+<h2 id="logistic-regression-introduction">Logistic regression introduction</h2>
+
+<p>We saw in the last lesson on linear regression how we can train a model \(g(\boldsymbol{x} \mid \boldsymbol{\theta})\) on training data \(\boldsymbol{X}_\mathrm{train}\) with a continuous label \(Y_\mathrm{train}\). But what now if we have a task where we want to train a model to distinguish between data which may belong to one of two classes. For example we may want to identify whether an image contains an image or either a cat or a dog? Or maybe we would like diagnose whether a patient has a medical condition based on their test results or perhaps we want to build an email filter which will filter out spam emails but keep legitimate emails. 
+<img src="../fig/cats_and_dogs.png" alt="drawing" width="500" />
+<img src="../fig/patient-data.png" alt="drawing" width="500" /></p>
+
+<blockquote class="callout">
+  <h2 id="discuss">Discuss</h2>
+
+  <p>All of these tasks should have a binary output - what would the final output for each case be in human readable terms? <br />
+What would the final output for each case be in machine readable format? <br />
+Bonus: how many input dimensions are there for the patient example? How many would there be with image inputs?</p>
+</blockquote>
+
+<p>A classic example of a classification task within Machine Learning is predicting handwritten digits from the <a href="https://en.wikipedia.org/wiki/MNIST_database">MNIST dataset</a> containing 70000 images. Optical Character Recognition software is important to many industries - today close to 99 % of letters sent via post are sorted automatically! We will revist this task later with more powerful Deep Neural Networks and Convolutional Neural Networks but it is a good idea to first work with it in the scope of logistic regression.</p>
+
+<p>MNIST IMAGE HERE</p>
+
+<p>We shall first use logistic regression for a <em>binary classification</em> task before then using its generalised version softmax regression for <em>multiclass classification</em>.</p>
+
+<h2 id="mathematical-foundations">Mathematical foundations</h2>
+<p>We can understand the setup for logistic regression in terms having input data \(\boldsymbol{x}^{(i)}\) of some form and labelled response \(y_i = \{0,1\}\). We therefore want a model that will take our input data and yield a result between 0 and 1, ideally with data with \(y_i = 0\) as close to 0 as possible and with data with \(y_i = 1\) as close to 1 as possible. In reality we expect that our outputs will be spread out between somewhat - this actually gives our model the ability to give probabilities which is no bad thing.</p>
+
+<p>There are many functions which can give an output ranging from 0 to 1 but the classic example and most commonly used is the logistic or sigmoid or logistic function
+\begin{equation}
+\sigma(s) = \frac{1}{1 + \mathrm{e}^{-s}}.
+\end{equation}
+Importantly this goes to \(0\) for \(s \to -\infty\) and to \(1\) for \(s \to \infty\).</p>
+
+<p><img src="../fig/Logistic-curve.png" alt="drawing" width="500" /></p>
+
+<!-- ![FCN diagram](../fig/Logistic-curve.png)> -->
+
+<blockquote class="callout">
+  <h2 id="historical-note">Historical note</h2>
+
+  <p>Earlier binary classification models often returned an output of either 0 or 1 - known as <em>hard classification</em>.<br />
+Now almost all binary classification models, such as logistic regression, return an output ranging between 0 and 1 - known as <em>soft classification</em>. We can always round up or down if we want a final answer but with soft classification you also get a probability.</p>
+</blockquote>
+
+<p>The logistic model actually can be used to return the estimated probabilities of any datapoint belonging to either class \(y_i\) given the value of that datapoint \(\boldsymbol{x}^{(i)}\) and the parameters of the model \(\boldsymbol{\theta}\). The formal name for this type of probability is a <em>conditional probability</em> but don’t worry if that doesn’t mean anything to you yet! The probability of the model predicting a “positive” result of \(y_i=1\) given our model and inputs is
+\begin{align}
+P(y_i=1|\boldsymbol{x}^{(i)},\boldsymbol\theta) = \sigma(\boldsymbol{\theta}^\mathsf{T} \boldsymbol{x}^{(i)}) = \frac{1}{1+\mathrm{e}^{-\boldsymbol{\theta}^\mathsf{T} \boldsymbol{x}^{(i)}}}. 
+\end{align}
+We can also easily find the probability of the model predicting a “negative” result of \(y_i=0\) from this
+\begin{align}
+P(y_i=0|\boldsymbol{x}^{(i)},\boldsymbol\theta) &amp;= 1 - P(y_i=1|\boldsymbol{x}^{(i)},\boldsymbol\theta).
+\end{align}</p>
+
+<p>These probabilities tell us what our model will output but are also important for understanding what our cost function will be. Remember that the value for the parameter \(\boldsymbol\theta\) will be found through gradient descent, for which we need the cost function. Before deriving the cost function let’s first make sure that we understand what our model is predicting:</p>
+
+<blockquote class="callout">
+  <h2 id="worked-excercise">Worked excercise</h2>
+
+  <p>If we have data from two variables \(x_1\) and \(x_2\) distributed as shown below. When will our model predict that the data belongs to either class?
+<img src="../fig/Decision-boundary.png" alt="drawing" width="250" />
+Our model should predict that \(P(y_i=1|\boldsymbol{x}^{(i)},\boldsymbol\theta) = g(\boldsymbol\theta^\mathsf{T} \boldsymbol x ) = g(\theta_0 + \theta_1 x_1 + \theta_2 x_2)\). Now suppose that our model after training learns parameters</p>
+  <p style="text-align: center;">$$\begin{align}
+    \boldsymbol \theta &amp;= \begin{bmatrix}
+           -3 \\
+           1 \\
+           1 \\
+         \end{bmatrix}
+  \end{align}$$</p>
+  <p>Substituting these values we have \(g(\theta_0 + \theta_1 x_1 + \theta_2 x_2) = g(-3 + x_1 + x_2)\). From the definition of the sigmoid function we can see that \(\sigma(s) \geq 0.5\) when \(s \geq 0\) and \(\sigma(s) &lt; 0.5\) when \(s &lt; 0\).</p>
+
+  <p>For us this means that if we round the results of our model to 0 or 1, it will predict \(y=1\) if \(-3 + x_1 + x_2 \geq 0\) and \(y=0\) if \(-3 + x_1 + x_2 &lt; 0\). That gives us 
+\begin{equation}
+\text{predict } y_i=1 \text{ if }  = x_1 + x_2 \geq 3
+\end{equation}
+\begin{equation}
+\text{predict } y_i=0 \text{ if }  = x_1 + x_2 &lt; 3
+\end{equation}
+We can draw such a <em>decision boundary</em> on the graph as is shown above.</p>
+</blockquote>
+
+<blockquote class="callout">
+  <h2 id="excercise">Excercise</h2>
+
+  <p>Now what if we had data distributed non-linearly as shown below?
+<img src="../fig/Decision-boundary-nonlinear.png" alt="drawing" width="250" />
+We can use a polynomial model which predicts \(P(y_i=1|\boldsymbol{x}^{(i)},\boldsymbol\theta) = g(\boldsymbol\theta^\mathsf{T} \boldsymbol x ) = g(\theta_0 + \theta_1 x_1 + \theta_2 x_2 + \theta_3 x_1^2 + \theta_4 x_2^2)\). Suppose that our model has parameters</p>
+  <p style="text-align: center;">$$\begin{align}
+    \boldsymbol \theta &amp;= \begin{bmatrix}
+           -1 \\
+           0 \\
+           0 \\
+           1 \\
+           1
+         \end{bmatrix}
+  \end{align}$$</p>
+  <p>Now find the decision boundary which our model defines.</p>
+</blockquote>
+
+<p>Now let’s go ahead and find the cost function. We shall actually take a different approach to deriving it than we did for linear regression through considering <em>likelihoods</em>. Remember that the goal of the cost function is to find the optimal model parameters \(\boldsymbol{\theta}\); we shall find a function that does just that.</p>
+
+<p>First though, a bit of statistics background: the likelihood function gives the likelihood or probability of our model being correct given response data \(y_i\). It is generally written \(L(\theta \mid y)\) - or in our case \(L(\boldsymbol{x}^{(i)},\boldsymbol\theta \mid y_i)\) - notice how this is different to our conditional probability \(P(y \mid \theta)\) - or in our case \(P(y_i \mid \boldsymbol{x}^{(i)},\boldsymbol\theta)\).</p>
+
+<p>We can say that the likelihood for our model being correct given \(y_i=1\) is<br />
+\begin{equation}
+L(\boldsymbol{X},\boldsymbol\theta, \mid y_i = 1) = \prod_{i=1}^n P(y_i=1|\boldsymbol{x}^{(i)}.\boldsymbol\theta)
+\end{equation}
+Notice that we use take the product here over all datapoints \(i\) since we want the likelihood of obtaining the entire input dataset \(\boldsymbol{X} = \{x^{(i)}\}\). We also have that the likelihood for our model being correct given \(y_0=0\) is
+\begin{equation}
+L(\boldsymbol{X},\boldsymbol\theta, \mid y_i = 0) = \prod_{i=1}^n P(y_i=0|\boldsymbol{x}^{(i)}.\boldsymbol\theta)
+\end{equation}</p>
+
+<p>We can actually use a clever mathematical trick to write the likelihoods in a compact notation:
+\begin{equation}
+L(\boldsymbol{X},\boldsymbol\theta \mid y_i) = \prod_{i=1}^n P(y_i=1|\boldsymbol{x}^{(i)},\boldsymbol\theta)^{y_i} P(y_i=0|\boldsymbol{x}^{(i)},\boldsymbol\theta)^{1 - y_i}.
+\end{equation}
+You should be able to plug in \(y_i=0\) or \(y_i=1\) to this equation to obtain the two equations above.</p>
+
+<p>Statisticians often prefer to work with the log-likelihood instead of the likelihood. Ours will be
+\begin{equation}
+\ln L(\boldsymbol{\theta}) = \sum_{i=1}^n y_i \ln \left( \sigma ( \boldsymbol{\theta}^\mathsf{T} \boldsymbol{x} ) \right) + (1 - y_i) \ln \left(1 -  \sigma ( \boldsymbol{\theta}^\mathsf{T} \boldsymbol{x} ) \right).
+\end{equation}
+Note that \(L(\boldsymbol{\theta}) = L(\boldsymbol{X},\boldsymbol\theta \mid y_i)\), we often just drop the other symbols for convenience. You may be wondering where this is going, but if you are familiar with statistics then you may have heard of <em>maximum likelihood estimation</em> (MLE). MLE is a popular technique for finding the best estimate the parameters of a model by maximising the likelihood function given some observed data. Now if this were a pure statistics course then we would go ahead and perform MLE here to find the optimal value for \(\boldsymbol{\theta}\), however we know have a prescription to do so with gradient descent which will be much less computationally expensive for big datasets.</p>
+
+<p>If we take our loss to be the negative log-likelihood, then by minimising the loss function we are essentially maximising the likelihood, hence finding the optimal value for \(\boldsymbol{\theta}\). The loss/cost function for logistic regression is therefore
+\begin{equation}
+l(\boldsymbol{\theta}) = - \sum_{i=1}^n y_i \ln \left( \sigma ( \boldsymbol{\theta}^\mathsf{T} \boldsymbol{x} ) \right) + (1 - y_i) \ln \left(1 -  \sigma ( \boldsymbol{\theta}^\mathsf{T} \boldsymbol{x} ) \right) .
+\end{equation}
+Within Statistics this quantity is also known as the cross-entropy. Since we are performing a binary classification task we call this the binary cross-entropy loss.</p>
+
+<blockquote class="callout">
+  <h2 id="additional-tip">Additional tip</h2>
+
+  <p>The loss function here can be easily generalised to include \(m\) labels whereupon the classification problem is called <em>softmax regression</em>. In problems with more than two labels, in practice one often converts the \(y_i\) labels into <em>one-hot encoded</em> values so that the algorithm does not think higher numbers more important than lower ones.</p>
+</blockquote>
+
+<h2 id="python-excercise-mnist-classification">Python excercise: MNIST classification</h2>
+<p>Now we shall put into practice our own classifier, working to predict what digits images from the MNIST dataset represent. You can follow along in the Jupyter notebook or you can run the code locally on your machine if you wish. We’ll work through this excercise using Keras but there are also examples which you can follow using PyTorch and sklearn. Shown below is an example of the code that you will find in the notebook, but using softmax regression instead of logistic regression. The difference is minor and you will have a chance to run the code using logistic regression instead in the notebook.</p>
+
+<p>Loading the data is straightforward as most ML libraries now come with the MNIST dataset already available. To load it in Keras do</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">keras.datasets</span> <span class="kn">import</span> <span class="n">mnist</span> 
+<span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">),</span> <span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">)</span> <span class="o">=</span> <span class="n">mnist</span><span class="p">.</span><span class="n">load_data</span><span class="p">()</span>
+</code></pre></div></div>
+<p>We have 60000 training images and 10000 testing images.</p>
+
+<p>The MNIST images are 2D images of 28 x 28 pixels. We therefore want to flatten these images into 28*28 = 784 dimensional inputs. The images are in grayscale so we don’t have to worry about the RGB colour dimensions here. We’ll also want to normalise the images by their minimum and maximum values. The minimum value is 0 (pure black) and as the images are 8 bit, the maximum value is 255 (pure white). We can therefore do</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">input_dim</span> <span class="o">=</span> <span class="mi">28</span><span class="o">*</span><span class="mi">28</span> 
+<span class="n">X_train</span> <span class="o">=</span> <span class="n">X_train</span><span class="p">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">60000</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">)</span> 
+<span class="n">X_test</span> <span class="o">=</span> <span class="n">X_test</span><span class="p">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">10000</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">)</span> 
+<span class="n">X_train</span> <span class="o">/=</span> <span class="mi">255</span> 
+<span class="n">X_test</span> <span class="o">/=</span> <span class="mi">255</span>
+</code></pre></div></div>
+<p>Note that in future projects, it is generally better to use a more sophisticated normalisation method such as sklearns’ <code class="language-plaintext highlighter-rouge">MinMaxScaler</code>, however as we know precisely the min and max values, dividing by 255 is good here. We also need to convert our labels into one-hot encoded values so that so that the algorithm does not think higher numbers more important than lower ones:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">keras.utils</span> <span class="kn">import</span> <span class="n">np_utils</span> 
+<span class="n">Y_train</span> <span class="o">=</span> <span class="n">np_utils</span><span class="p">.</span><span class="n">to_categorical</span><span class="p">(</span><span class="n">y_train</span><span class="p">,</span> <span class="n">nb_classes</span><span class="p">)</span> 
+<span class="n">Y_test</span> <span class="o">=</span> <span class="n">np_utils</span><span class="p">.</span><span class="n">to_categorical</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">nb_classes</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>We can setup a model in Keras as such:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">keras.models</span> <span class="kn">import</span> <span class="n">Sequential</span> 
+<span class="kn">from</span> <span class="nn">keras.layers</span> <span class="kn">import</span> <span class="n">Dense</span><span class="p">,</span> <span class="n">Activation</span> 
+<span class="n">nb_classes</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">output_dim</span> <span class="o">=</span> <span class="n">nb_classes</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">Sequential</span><span class="p">()</span> 
+<span class="n">model</span><span class="p">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dense</span><span class="p">(</span><span class="n">output_dim</span><span class="p">,</span> <span class="n">input_dim</span><span class="o">=</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s">'softmax'</span><span class="p">))</span> 
+</code></pre></div></div>
+
+<p>Finally we compile and test the model:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">128</span> 
+<span class="n">epochs</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="n">model</span><span class="p">.</span><span class="nb">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s">'sgd'</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="s">'categorical_crossentropy'</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s">'accuracy'</span><span class="p">])</span> 
+<span class="n">history</span> <span class="o">=</span> <span class="n">model</span><span class="p">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span><span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">Y_test</span><span class="p">))</span> 
+<span class="n">score</span> <span class="o">=</span> <span class="n">model</span><span class="p">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">Y_test</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> 
+<span class="k">print</span><span class="p">(</span><span class="s">'Test score:'</span><span class="p">,</span> <span class="n">score</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> 
+<span class="k">print</span><span class="p">(</span><span class="s">'Test accuracy:'</span><span class="p">,</span> <span class="n">score</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</code></pre></div></div>
+
+<p>In the notebook we will then go on to plot the losses and accuracies during training and discuss various performance metrics including ROC curves. You will also have a chance to try out different regularisations and see what effect they have on the performance.</p>
+
+<h2 id="final-notes">Final notes</h2>
+<p>Logistic and softmax regression are fundamental topics for understanding more complex machine learning methods, and you will see the sigmoid and softmax functions time and time again. Furthermore if you can get to grips with understanding the setup for a classification task and the performance metrics now, it will help a lot of the later topics click into place.</p>
+
+<p>Next lesson we shall look at Deep Neural Networks, for which you should now be well equipped!</p>
+
+<blockquote class="keypoints">
+  <h2>Key Points</h2>
+  <ul>
+    
+    <li><p>Binary classification</p>
+</li>
+    
+    <li><p>Multiclass classification</p>
+</li>
+    
+    <li><p>Likelihood</p>
+</li>
+    
+    <li><p>Cross-entropy loss</p>
+</li>
+    
+    <li><p>Performance metrics</p>
+</li>
+    
+  </ul>
+</blockquote>
+
+<hr />
+
 <h1 id="introduction" class="maintitle">Introduction</h1>
 
 <blockquote class="objectives">
@@ -263,6 +544,388 @@
   <ul>
     
     <li><p>First key point. Brief Answer to questions. (FIXME)</p>
+</li>
+    
+  </ul>
+</blockquote>
+
+<hr />
+
+<h1 id="ml-intro" class="maintitle">ml-intro</h1>
+
+<blockquote class="objectives">
+  <h2>Overview</h2>
+
+  <div class="row">
+    <div class="col-md-3">
+      <strong>Teaching:</strong> 10 min
+      <br />
+      <strong>Exercises:</strong> 0 min
+    </div>
+    <div class="col-md-9">
+      <strong>Questions</strong>
+      <ul>
+	
+	<li><p>None yet</p>
+</li>
+	
+      </ul>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-3">
+    </div>
+    <div class="col-md-9">
+      <strong>Objectives</strong>
+      <ul>
+	
+	<li><p>Explain what we will cover in this workshop</p>
+</li>
+	
+      </ul>
+    </div>
+  </div>
+
+</blockquote>
+
+<p>This is the introductory page.</p>
+
+<h2 id="the-crux-of-learning">The crux of learning</h2>
+
+<p>Here I can put any infomation about what the course will cover.</p>
+
+<p><img src="../fig/forking.svg" alt="Forking Repositories" /></p>
+
+<p>Maybe include some images as well…</p>
+
+<p><img src="../fig/FCNDiagram.png" alt="FCN diagram" /></p>
+
+<p><img src="../fig/repository-links.svg" alt="Repository Links" /></p>
+
+<h2 id="helpful-tools">Helpful tools</h2>
+
+<p>If I want to have code-like text in the main text body I can do this <code class="language-plaintext highlighter-rouge">python take-over-the-world.py</code></p>
+
+<blockquote class="callout">
+  <h2 id="teaching-tools">Teaching Tools</h2>
+
+  <p>I can outline here some tools that may be useful, such as:
+<a href="https://jupyter.org/">Jupyter Notebook</a>,
+Wow somehow carpentries knows how to link to jupyter without actually specifying the link. 
+I need to figure out how to include an actual link</p>
+</blockquote>
+
+<h2 id="latex-typesetting">LaTeX typesetting</h2>
+
+<p>LaTeX can be easily used with the usual double dollar signs \(y = mx + c\), although this will appear on the same line.</p>
+
+<p>Some common definitions are included below.</p>
+
+<ul>
+  <li><strong>Data</strong> $(x_i, y_i)$ where $i$ represents the \(i^{\text{th}}\) data point. The \(x_i\) are typically referred to as <strong>instances</strong> and the \(y_i\) as <strong>labels</strong>. In general the \(x_i\) and \(y_i\) don’t need to be numbers. For example, in a dataset consisting of pictures of animals, the \(x_i\) might be images (consisting of height, width, and color channel) and the \(y_i\) might be a string which states the type of animal.</li>
+</ul>
+
+<h2 id="code-presentation">Code presentation</h2>
+
+<p>I will present code as follows:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>bash ./find-bsm-physics.sh
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">python</span> <span class="n">get_nobel_prize</span><span class="p">.</span><span class="n">py</span>
+</code></pre></div></div>
+
+<div class="language-plaintext output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Traceback (most recent call last):
+  File "./get_nobel_prize.py", line 5, in &lt;module&gt;
+    assert nobel_prize == True
+AssertionError
+</code></pre></div></div>
+
+<blockquote class="callout">
+  <h2 id="some-extra-tips">Some extra tips…</h2>
+
+  <p>It is better to code on a computer than on clay tablets</p>
+</blockquote>
+
+<h2 id="end-of-introduction">End of introduction</h2>
+
+<p>Wrap it up here.</p>
+
+<blockquote class="keypoints">
+  <h2>Key Points</h2>
+  <ul>
+    
+    <li><p>Something interesting about data science</p>
+</li>
+    
+  </ul>
+</blockquote>
+
+<hr />
+
+<h1 id="logistic-regression" class="maintitle">Logistic Regression</h1>
+
+<blockquote class="objectives">
+  <h2>Overview</h2>
+
+  <div class="row">
+    <div class="col-md-3">
+      <strong>Teaching:</strong> 15 min
+      <br />
+      <strong>Exercises:</strong> 45 min
+    </div>
+    <div class="col-md-9">
+      <strong>Questions</strong>
+      <ul>
+	
+      </ul>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-3">
+    </div>
+    <div class="col-md-9">
+      <strong>Objectives</strong>
+      <ul>
+	
+	<li><p>When to perform logistic regression</p>
+</li>
+	
+	<li><p>Setup training and testing data for logistic regression</p>
+</li>
+	
+	<li><p>Understand the binary cross-entropy loss</p>
+</li>
+	
+	<li><p>How to tune your model and implement regularisation</p>
+</li>
+	
+	<li><p>Understand the performance metrics that can be used to evaluate classification models</p>
+</li>
+	
+      </ul>
+    </div>
+  </div>
+
+</blockquote>
+
+<h2 id="key-concepts-and-lesson-objectives">Key concepts and lesson objectives</h2>
+<p>We have learnt the following concepts in the last lesson on linear regression which we shall use again here:</p>
+<ul>
+  <li>Train-test splitting</li>
+  <li>Gradient descent</li>
+  <li>The loss/cost function</li>
+  <li>Overfitting</li>
+  <li>The bias-variance tradeoff</li>
+</ul>
+
+<p>Continuing on from this we shall learn how logistic regression can be used for classification tasks in a similar vein to linear regression, but with a few important changes. By the end of this lesson you should know:</p>
+<ul>
+  <li>When to perform logistic regression</li>
+  <li>Setup training and testing data for logistic regression</li>
+  <li>Understand the binary cross-entropy loss</li>
+  <li>How to tune your model and implement regularisation</li>
+  <li>Understand the performance metrics that can be used to evaluate classification models</li>
+</ul>
+
+<h2 id="logistic-regression-introduction">Logistic regression introduction</h2>
+
+<p>We saw in the last lesson on linear regression how we can train a model \(g(\boldsymbol{x} \mid \boldsymbol{\theta})\) on training data \(\boldsymbol{X}_\mathrm{train}\) with a continuous label \(Y_\mathrm{train}\). But what now if we have a task where we want to train a model to distinguish between data which may belong to one of two classes. For example we may want to identify whether an image contains an image or either a cat or a dog? Or maybe we would like diagnose whether a patient has a medical condition based on their test results or perhaps we want to build an email filter which will filter out spam emails but keep legitimate emails. 
+<img src="../fig/cats_and_dogs.png" alt="drawing" width="500" />
+<img src="../fig/patient-data.png" alt="drawing" width="500" /></p>
+
+<blockquote class="callout">
+  <h2 id="discuss">Discuss</h2>
+
+  <p>All of these tasks should have a binary output - what would the final output for each case be in human readable terms? <br />
+What would the final output for each case be in machine readable format? <br />
+Bonus: how many input dimensions are there for the patient example? How many would there be with image inputs?</p>
+</blockquote>
+
+<p>A classic example of a classification task within Machine Learning is predicting handwritten digits from the <a href="https://en.wikipedia.org/wiki/MNIST_database">MNIST dataset</a> containing 70000 images. Optical Character Recognition software is important to many industries - today close to 99 % of letters sent via post are sorted automatically! We will revist this task later with more powerful Deep Neural Networks and Convolutional Neural Networks but it is a good idea to first work with it in the scope of logistic regression.</p>
+
+<p>MNIST IMAGE HERE</p>
+
+<p>We shall first use logistic regression for a <em>binary classification</em> task before then using its generalised version softmax regression for <em>multiclass classification</em>.</p>
+
+<h2 id="mathematical-foundations">Mathematical foundations</h2>
+<p>We can understand the setup for logistic regression in terms having input data \(\boldsymbol{x}^{(i)}\) of some form and labelled response \(y_i = \{0,1\}\). We therefore want a model that will take our input data and yield a result between 0 and 1, ideally with data with \(y_i = 0\) as close to 0 as possible and with data with \(y_i = 1\) as close to 1 as possible. In reality we expect that our outputs will be spread out between somewhat - this actually gives our model the ability to give probabilities which is no bad thing.</p>
+
+<p>There are many functions which can give an output ranging from 0 to 1 but the classic example and most commonly used is the logistic or sigmoid or logistic function
+\begin{equation}
+\sigma(s) = \frac{1}{1 + \mathrm{e}^{-s}}.
+\end{equation}
+Importantly this goes to \(0\) for \(s \to -\infty\) and to \(1\) for \(s \to \infty\).</p>
+
+<p><img src="../fig/Logistic-curve.png" alt="drawing" width="500" /></p>
+
+<!-- ![FCN diagram](../fig/Logistic-curve.png)> -->
+
+<blockquote class="callout">
+  <h2 id="historical-note">Historical note</h2>
+
+  <p>Earlier binary classification models often returned an output of either 0 or 1 - known as <em>hard classification</em>.<br />
+Now almost all binary classification models, such as logistic regression, return an output ranging between 0 and 1 - known as <em>soft classification</em>. We can always round up or down if we want a final answer but with soft classification you also get a probability.</p>
+</blockquote>
+
+<p>The logistic model actually can be used to return the estimated probabilities of any datapoint belonging to either class \(y_i\) given the value of that datapoint \(\boldsymbol{x}^{(i)}\) and the parameters of the model \(\boldsymbol{\theta}\). The formal name for this type of probability is a <em>conditional probability</em> but don’t worry if that doesn’t mean anything to you yet! The probability of the model predicting a “positive” result of \(y_i=1\) given our model and inputs is
+\begin{align}
+P(y_i=1|\boldsymbol{x}^{(i)},\boldsymbol\theta) = \sigma(\boldsymbol{\theta}^\mathsf{T} \boldsymbol{x}^{(i)}) = \frac{1}{1+\mathrm{e}^{-\boldsymbol{\theta}^\mathsf{T} \boldsymbol{x}^{(i)}}}. 
+\end{align}
+We can also easily find the probability of the model predicting a “negative” result of \(y_i=0\) from this
+\begin{align}
+P(y_i=0|\boldsymbol{x}^{(i)},\boldsymbol\theta) &amp;= 1 - P(y_i=1|\boldsymbol{x}^{(i)},\boldsymbol\theta).
+\end{align}</p>
+
+<p>These probabilities tell us what our model will output but are also important for understanding what our cost function will be. Remember that the value for the parameter \(\boldsymbol\theta\) will be found through gradient descent, for which we need the cost function. Before deriving the cost function let’s first make sure that we understand what our model is predicting:</p>
+
+<blockquote class="callout">
+  <h2 id="worked-excercise">Worked excercise</h2>
+
+  <p>If we have data from two variables \(x_1\) and \(x_2\) distributed as shown below. When will our model predict that the data belongs to either class?
+<img src="../fig/Decision-boundary.png" alt="drawing" width="250" />
+Our model should predict that \(P(y_i=1|\boldsymbol{x}^{(i)},\boldsymbol\theta) = g(\boldsymbol\theta^\mathsf{T} \boldsymbol x ) = g(\theta_0 + \theta_1 x_1 + \theta_2 x_2)\). Now suppose that our model after training learns parameters</p>
+  <p style="text-align: center;">$$\begin{align}
+    \boldsymbol \theta &amp;= \begin{bmatrix}
+           -3 \\
+           1 \\
+           1 \\
+         \end{bmatrix}
+  \end{align}$$</p>
+  <p>Substituting these values we have \(g(\theta_0 + \theta_1 x_1 + \theta_2 x_2) = g(-3 + x_1 + x_2)\). From the definition of the sigmoid function we can see that \(\sigma(s) \geq 0.5\) when \(s \geq 0\) and \(\sigma(s) &lt; 0.5\) when \(s &lt; 0\).</p>
+
+  <p>For us this means that if we round the results of our model to 0 or 1, it will predict \(y=1\) if \(-3 + x_1 + x_2 \geq 0\) and \(y=0\) if \(-3 + x_1 + x_2 &lt; 0\). That gives us 
+\begin{equation}
+\text{predict } y_i=1 \text{ if }  = x_1 + x_2 \geq 3
+\end{equation}
+\begin{equation}
+\text{predict } y_i=0 \text{ if }  = x_1 + x_2 &lt; 3
+\end{equation}
+We can draw such a <em>decision boundary</em> on the graph as is shown above.</p>
+</blockquote>
+
+<blockquote class="callout">
+  <h2 id="excercise">Excercise</h2>
+
+  <p>Now what if we had data distributed non-linearly as shown below?
+<img src="../fig/Decision-boundary-nonlinear.png" alt="drawing" width="250" />
+We can use a polynomial model which predicts \(P(y_i=1|\boldsymbol{x}^{(i)},\boldsymbol\theta) = g(\boldsymbol\theta^\mathsf{T} \boldsymbol x ) = g(\theta_0 + \theta_1 x_1 + \theta_2 x_2 + \theta_3 x_1^2 + \theta_4 x_2^2)\). Suppose that our model has parameters</p>
+  <p style="text-align: center;">$$\begin{align}
+    \boldsymbol \theta &amp;= \begin{bmatrix}
+           -1 \\
+           0 \\
+           0 \\
+           1 \\
+           1
+         \end{bmatrix}
+  \end{align}$$</p>
+  <p>Now find the decision boundary which our model defines.</p>
+</blockquote>
+
+<p>Now let’s go ahead and find the cost function. We shall actually take a different approach to deriving it than we did for linear regression through considering <em>likelihoods</em>. Remember that the goal of the cost function is to find the optimal model parameters \(\boldsymbol{\theta}\); we shall find a function that does just that.</p>
+
+<p>First though, a bit of statistics background: the likelihood function gives the likelihood or probability of our model being correct given response data \(y_i\). It is generally written \(L(\theta \mid y)\) - or in our case \(L(\boldsymbol{x}^{(i)},\boldsymbol\theta \mid y_i)\) - notice how this is different to our conditional probability \(P(y \mid \theta)\) - or in our case \(P(y_i \mid \boldsymbol{x}^{(i)},\boldsymbol\theta)\).</p>
+
+<p>We can say that the likelihood for our model being correct given \(y_i=1\) is<br />
+\begin{equation}
+L(\boldsymbol{X},\boldsymbol\theta, \mid y_i = 1) = \prod_{i=1}^n P(y_i=1|\boldsymbol{x}^{(i)}.\boldsymbol\theta)
+\end{equation}
+Notice that we use take the product here over all datapoints \(i\) since we want the likelihood of obtaining the entire input dataset \(\boldsymbol{X} = \{x^{(i)}\}\). We also have that the likelihood for our model being correct given \(y_0=0\) is
+\begin{equation}
+L(\boldsymbol{X},\boldsymbol\theta, \mid y_i = 0) = \prod_{i=1}^n P(y_i=0|\boldsymbol{x}^{(i)}.\boldsymbol\theta)
+\end{equation}</p>
+
+<p>We can actually use a clever mathematical trick to write the likelihoods in a compact notation:
+\begin{equation}
+L(\boldsymbol{X},\boldsymbol\theta \mid y_i) = \prod_{i=1}^n P(y_i=1|\boldsymbol{x}^{(i)},\boldsymbol\theta)^{y_i} P(y_i=0|\boldsymbol{x}^{(i)},\boldsymbol\theta)^{1 - y_i}.
+\end{equation}
+You should be able to plug in \(y_i=0\) or \(y_i=1\) to this equation to obtain the two equations above.</p>
+
+<p>Statisticians often prefer to work with the log-likelihood instead of the likelihood. Ours will be
+\begin{equation}
+\ln L(\boldsymbol{\theta}) = \sum_{i=1}^n y_i \ln \left( \sigma ( \boldsymbol{\theta}^\mathsf{T} \boldsymbol{x} ) \right) + (1 - y_i) \ln \left(1 -  \sigma ( \boldsymbol{\theta}^\mathsf{T} \boldsymbol{x} ) \right).
+\end{equation}
+Note that \(L(\boldsymbol{\theta}) = L(\boldsymbol{X},\boldsymbol\theta \mid y_i)\), we often just drop the other symbols for convenience. You may be wondering where this is going, but if you are familiar with statistics then you may have heard of <em>maximum likelihood estimation</em> (MLE). MLE is a popular technique for finding the best estimate the parameters of a model by maximising the likelihood function given some observed data. Now if this were a pure statistics course then we would go ahead and perform MLE here to find the optimal value for \(\boldsymbol{\theta}\), however we know have a prescription to do so with gradient descent which will be much less computationally expensive for big datasets.</p>
+
+<p>If we take our loss to be the negative log-likelihood, then by minimising the loss function we are essentially maximising the likelihood, hence finding the optimal value for \(\boldsymbol{\theta}\). The loss/cost function for logistic regression is therefore
+\begin{equation}
+l(\boldsymbol{\theta}) = - \sum_{i=1}^n y_i \ln \left( \sigma ( \boldsymbol{\theta}^\mathsf{T} \boldsymbol{x} ) \right) + (1 - y_i) \ln \left(1 -  \sigma ( \boldsymbol{\theta}^\mathsf{T} \boldsymbol{x} ) \right) .
+\end{equation}
+Within Statistics this quantity is also known as the cross-entropy. Since we are performing a binary classification task we call this the binary cross-entropy loss.</p>
+
+<blockquote class="callout">
+  <h2 id="additional-tip">Additional tip</h2>
+
+  <p>The loss function here can be easily generalised to include \(m\) labels whereupon the classification problem is called <em>softmax regression</em>. In problems with more than two labels, in practice one often converts the \(y_i\) labels into <em>one-hot encoded</em> values so that the algorithm does not think higher numbers more important than lower ones.</p>
+</blockquote>
+
+<h2 id="python-excercise-mnist-classification">Python excercise: MNIST classification</h2>
+<p>Now we shall put into practice our own classifier, working to predict what digits images from the MNIST dataset represent. You can follow along in the Jupyter notebook or you can run the code locally on your machine if you wish. We’ll work through this excercise using Keras but there are also examples which you can follow using PyTorch and sklearn. Shown below is an example of the code that you will find in the notebook, but using softmax regression instead of logistic regression. The difference is minor and you will have a chance to run the code using logistic regression instead in the notebook.</p>
+
+<p>Loading the data is straightforward as most ML libraries now come with the MNIST dataset already available. To load it in Keras do</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">keras.datasets</span> <span class="kn">import</span> <span class="n">mnist</span> 
+<span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">),</span> <span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">)</span> <span class="o">=</span> <span class="n">mnist</span><span class="p">.</span><span class="n">load_data</span><span class="p">()</span>
+</code></pre></div></div>
+<p>We have 60000 training images and 10000 testing images.</p>
+
+<p>The MNIST images are 2D images of 28 x 28 pixels. We therefore want to flatten these images into 28*28 = 784 dimensional inputs. The images are in grayscale so we don’t have to worry about the RGB colour dimensions here. We’ll also want to normalise the images by their minimum and maximum values. The minimum value is 0 (pure black) and as the images are 8 bit, the maximum value is 255 (pure white). We can therefore do</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">input_dim</span> <span class="o">=</span> <span class="mi">28</span><span class="o">*</span><span class="mi">28</span> 
+<span class="n">X_train</span> <span class="o">=</span> <span class="n">X_train</span><span class="p">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">60000</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">)</span> 
+<span class="n">X_test</span> <span class="o">=</span> <span class="n">X_test</span><span class="p">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">10000</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">)</span> 
+<span class="n">X_train</span> <span class="o">/=</span> <span class="mi">255</span> 
+<span class="n">X_test</span> <span class="o">/=</span> <span class="mi">255</span>
+</code></pre></div></div>
+<p>Note that in future projects, it is generally better to use a more sophisticated normalisation method such as sklearns’ <code class="language-plaintext highlighter-rouge">MinMaxScaler</code>, however as we know precisely the min and max values, dividing by 255 is good here. We also need to convert our labels into one-hot encoded values so that so that the algorithm does not think higher numbers more important than lower ones:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">keras.utils</span> <span class="kn">import</span> <span class="n">np_utils</span> 
+<span class="n">Y_train</span> <span class="o">=</span> <span class="n">np_utils</span><span class="p">.</span><span class="n">to_categorical</span><span class="p">(</span><span class="n">y_train</span><span class="p">,</span> <span class="n">nb_classes</span><span class="p">)</span> 
+<span class="n">Y_test</span> <span class="o">=</span> <span class="n">np_utils</span><span class="p">.</span><span class="n">to_categorical</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">nb_classes</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>We can setup a model in Keras as such:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">keras.models</span> <span class="kn">import</span> <span class="n">Sequential</span> 
+<span class="kn">from</span> <span class="nn">keras.layers</span> <span class="kn">import</span> <span class="n">Dense</span><span class="p">,</span> <span class="n">Activation</span> 
+<span class="n">nb_classes</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">output_dim</span> <span class="o">=</span> <span class="n">nb_classes</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">Sequential</span><span class="p">()</span> 
+<span class="n">model</span><span class="p">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dense</span><span class="p">(</span><span class="n">output_dim</span><span class="p">,</span> <span class="n">input_dim</span><span class="o">=</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s">'softmax'</span><span class="p">))</span> 
+</code></pre></div></div>
+
+<p>Finally we compile and test the model:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">128</span> 
+<span class="n">epochs</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="n">model</span><span class="p">.</span><span class="nb">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s">'sgd'</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="s">'categorical_crossentropy'</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s">'accuracy'</span><span class="p">])</span> 
+<span class="n">history</span> <span class="o">=</span> <span class="n">model</span><span class="p">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span><span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">Y_test</span><span class="p">))</span> 
+<span class="n">score</span> <span class="o">=</span> <span class="n">model</span><span class="p">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">Y_test</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> 
+<span class="k">print</span><span class="p">(</span><span class="s">'Test score:'</span><span class="p">,</span> <span class="n">score</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> 
+<span class="k">print</span><span class="p">(</span><span class="s">'Test accuracy:'</span><span class="p">,</span> <span class="n">score</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</code></pre></div></div>
+
+<p>In the notebook we will then go on to plot the losses and accuracies during training and discuss various performance metrics including ROC curves. You will also have a chance to try out different regularisations and see what effect they have on the performance.</p>
+
+<h2 id="final-notes">Final notes</h2>
+<p>Logistic and softmax regression are fundamental topics for understanding more complex machine learning methods, and you will see the sigmoid and softmax functions time and time again. Furthermore if you can get to grips with understanding the setup for a classification task and the performance metrics now, it will help a lot of the later topics click into place.</p>
+
+<p>Next lesson we shall look at Deep Neural Networks, for which you should now be well equipped!</p>
+
+<blockquote class="keypoints">
+  <h2>Key Points</h2>
+  <ul>
+    
+    <li><p>Binary classification</p>
+</li>
+    
+    <li><p>Multiclass classification</p>
+</li>
+    
+    <li><p>Likelihood</p>
+</li>
+    
+    <li><p>Cross-entropy loss</p>
+</li>
+    
+    <li><p>Performance metrics</p>
 </li>
     
   </ul>
