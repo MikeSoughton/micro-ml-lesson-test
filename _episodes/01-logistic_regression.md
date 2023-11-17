@@ -35,7 +35,7 @@ Continuing on from this we shall learn how logistic regression can be used for c
 
 We saw in the last lesson on linear regression how we can train a model $$g(\boldsymbol{x} \mid \boldsymbol{\theta})$$ on training data $$\boldsymbol{X}_\mathrm{train}$$ with a continuous label $$Y_\mathrm{train}$$. But what now if we have a task where we want to train a model to distinguish between data which may belong to one of two classes. For example we may want to identify whether an image contains an image or either a cat or a dog? Or maybe we would like diagnose whether a patient has a medical condition based on their test results or perhaps we want to build an email filter which will filter out spam emails but keep legitimate emails. 
 <img src="{{ page.root }}/fig/cats_and_dogs.png" alt="drawing" width="500"/>
-<img src="{{ page.root }}/fig/patient-data.png" alt="drawing" width="500"/>
+<img src="{{ page.root }}/fig/Patient-data.png" alt="drawing" width="500"/>
 
 > ## Discuss
 >
